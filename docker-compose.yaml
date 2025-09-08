@@ -1,0 +1,45 @@
+services:
+  bitcoind:
+    build:
+      context: .
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+    container_name: bitcoind
+    restart: unless-stopped
+    volumes:
+      - ${BITCOIN_DATA_PATH}:/home/bitcoin/.bitcoin
+    ports:
+      - "8333:8333" # P2P
+      - "8332:8332" # RPC
+      - "28332:28332" # ZMQ rawblock
+      - "28333:28333" # ZMQ rawtx
+
+  electrs:
+    image: getumbrel/electrs:v0.10.9
+    container_name: electrs
+    restart: unless-stopped
+    user: "${USER_ID}:${GROUP_ID}" # Match bitcoin-knots user
+    volumes:
+      - ${BITCOIN_DATA_PATH}:/bitcoin
+      - ${ELECTRS_DATA_PATH}:/db
+    ports:
+      - "50001:50001" # Electrum TCP port
+    environment:
+      - ELECTRS_NETWORK=bitcoin # Mainnet
+      - ELECTRS_DAEMON_RPC_ADDR=bitcoind:8332
+      - ELECTRS_DAEMON_P2P_ADDR=bitcoind:8333
+      - ELECTRS_ELECTRUM_RPC_ADDR=0.0.0.0:50001
+      - ELECTRS_SERVER_BANNER=${ELECTRS_SERVER_BANNER}
+      - ELECTRS_COOKIE_FILE=/bitcoin/.cookie
+      - ELECTRS_DB_DIR=/db # Explicit internal path
+      - ELECTRS_INDEX_LOOKUP_LIMIT=10000
+      - ELECTRS_TXID_LIMIT=1000
+      - ELECTRS_SCRIPTHASH_LIMIT=1000
+      - ELECTRS_INDEX_BATCH_SIZE=100
+      - ELECTRS_JSONRPC_TIMEOUT=30
+      - ELECTRS_WAIT_DURATION=10
+      - ELECTRS_LOG_FILTERS=info
+      - RUST_LOG=warn
+    depends_on:
+      - bitcoind

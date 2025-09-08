@@ -1,0 +1,13 @@
+# Bitcoin Knots Configuration                                             
+
+server=1
+mainnet=1
+rpcbind=0.0.0.0
+rpcallowip=0.0.0.0/0
+printtoconsole=1                                
+
+# Allow default RPC access from Docker. You may need to update this to match your network.
+rpcallowip=172.17.0.0/16
+
+zmqpubrawblock=tcp://0.0.0.0:28332
+zmqpubrawtx=tcp://0.0.0.0:28333
