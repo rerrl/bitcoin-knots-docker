@@ -28,7 +28,7 @@ mkdir bitcoin-data electrs-data
 5. Build and start the containers:
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 5. If you see an error from electrs saying it can't find the cookie file, make sure in your bitcoin.conf you're allowing the proper docker subnet IP. You can find this by running:

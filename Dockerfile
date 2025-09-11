@@ -43,6 +43,7 @@ RUN apt-get update && apt-get install -y \
     libminiupnpc17 \
     libnatpmp1 \
     libzmq5 \
+    less \
     && rm -rf /var/lib/apt/lists/*
 
 # Get host user ID to avoid permission issues
