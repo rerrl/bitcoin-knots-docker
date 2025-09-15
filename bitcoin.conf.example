@@ -1,13 +1,35 @@
-# Bitcoin Knots Configuration                                             
+# Bitcoin Knots Configuration
 
 server=1
 mainnet=1
 rpcbind=0.0.0.0
-rpcallowip=0.0.0.0/0
-printtoconsole=1                                
+printtoconsole=1    
+
+# Tries to keep outbound traffic under the given target per 24h.
+maxuploadtarget=5000
 
 # Allow default RPC access from Docker. You may need to update this to match your network.
 rpcallowip=172.17.0.0/16
 
 zmqpubrawblock=tcp://0.0.0.0:28332
 zmqpubrawtx=tcp://0.0.0.0:28333
+zmqpubhashblock=tcp://0.0.0.0:28334
+
+# Maintain a full transaction index, used by the getrawtransaction rpc
+txindex=1
+
+# number of script verification threads (0 = auto, up to 15, <0 = leave that many cores free)
+par=0
+
+# Whitelist local connections (and docker)
+whitelist=127.0.0.1
+whitelist=172.17.0.0/16
+whitelist=[::1]
+
+# Dont limit data to electrum server or local network
+whitelist=download@192.168.0.0/16
+whitelist=download@172.17.0.0/16
+
+# Enable Bloom filters (local network)
+whitelist=bloomfilter@192.168.0.0/16
+whitelist=bloomfilter@172.17.0.0/16
