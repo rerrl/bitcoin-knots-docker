@@ -2,7 +2,7 @@
 
 This repository provides a Docker-based setup for running Bitcoin Knots and electrs
 
-**Current Bitcoin Knots Version**: 29.1.knots20250903  
+**Current Bitcoin Knots Version**: 29.3.knots20260508
 **Source**: URLs pulled from https://bitcoinknots.org/
 
 ## How to use

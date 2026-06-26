@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Bitcoin Knots version
-ENV BITCOIN_VERSION=29.1.knots20250903
+ENV BITCOIN_VERSION=29.3.knots20260508
 ENV BITCOIN_URL=https://bitcoinknots.org/files/29.x/${BITCOIN_VERSION}/bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz
 ENV SHA256SUMS_URL=https://bitcoinknots.org/files/29.x/${BITCOIN_VERSION}/SHA256SUMS
 ENV SHA256SUMS_ASC_URL=https://bitcoinknots.org/files/29.x/${BITCOIN_VERSION}/SHA256SUMS.asc
