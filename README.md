@@ -1,4 +1,4 @@
-# Bitcoin Knots Docker Setup (v29.1.knots20250903)
+# Bitcoin Knots Docker Setup (v29.3.knots20260508)
 
 This repository provides a Docker-based setup for running Bitcoin Knots and electrs
 
