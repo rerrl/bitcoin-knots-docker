@@ -1,0 +1,14 @@
+# Tor configuration for Bitcoin Knots + electrs hidden service
+# The hidden service maps electrs's Electrum port to a .onion address
+
+HiddenServiceDir /var/lib/tor/hidden_service/
+HiddenServicePort 50001 electrs:50001
+
+# Explicitly bind SOCKS port so tor doesn't dangle on a random port
+SOCKSPort 0.0.0.0:9050
+
+# Log to stdout so docker logs picks it up
+Log notice stdout
+
+# Run as a daemon in the background
+RunAsDaemon 0

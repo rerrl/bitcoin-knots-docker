@@ -1,6 +1,6 @@
 # Bitcoin Knots Docker Setup (v29.3.knots20260508)
 
-This repository provides a Docker-based setup for running Bitcoin Knots and electrs
+This repository provides a Docker-based setup for running Bitcoin Knots and electrs, with an optional Tor hidden service for remote Electrum access.
 
 **Current Bitcoin Knots Version**: 29.3.knots20260508
 **Source**: URLs pulled from https://bitcoinknots.org/
@@ -22,7 +22,7 @@ Edit `.env` to set your desired paths and configuration. For development, the de
 4. Create your data directories (if using default paths):
 
 ```bash
-mkdir bitcoin-data electrs-data
+mkdir bitcoin-data electrs-data tor-data
 ```
 
 5. Build and start the containers:
@@ -63,11 +63,12 @@ The Dockerfile implements a robust security verification process to ensure the a
 
 - **bitcoind container**: Runs Bitcoin Knots with user/group ID matching your host system to avoid permission issues
 - **electrs container**: Provides an Electrum server interface to the Bitcoin node
-- Both containers communicate over a Docker network, with electrs connecting to bitcoind's RPC interface
+- **tor container** (optional): Exposes electrs as a Tor hidden service so you can connect from remote wallets like Sparrow via Tor
+- Containers communicate over a Docker network, with electrs connecting to bitcoind's RPC interface, and tor connecting to electrs
 
 ### Data Storage
 
-**Development/Testing**: By default, data is stored in local directories (`./bitcoin-data` and `./electrs-data`)
+**Development/Testing**: By default, data is stored in local directories (`./bitcoin-data`, `./electrs-data`, and `./tor-data`)
 
 **Production**: For production deployments, you should use external storage volumes (like dedicated SSDs) mounted to your host system:
 
@@ -88,3 +89,66 @@ The Dockerfile implements a robust security verification process to ensure the a
    ```
 
 This approach provides better performance, dedicated storage space, and easier backup/migration capabilities. Make sure to set proper ownership and permissions on the mounted directories to match your container user IDs.
+
+## Tor Hidden Service (Remote Access)
+
+The tor container creates a Tor hidden service that exposes electrs's Electrum port (50001) as a `.onion` address. This lets you connect to your node remotely from wallets that support Tor (like Sparrow Wallet).
+
+### How it works
+
+1. The tor container builds from `tor/Dockerfile` (Alpine + Tor)
+2. `tor/torrc` configures a hidden service mapping port 50001 to `electrs:50001`
+3. On startup, `tor/entrypoint.sh` waits for Tor to generate the hostname and prints the `.onion` address to the container logs
+4. The onion address and its private key persist in `./tor-data/` (the mounted volume), so the address stays the same across restarts
+
+### Before starting
+
+Create the Tor data directory:
+
+```bash
+mkdir tor-data
+```
+
+Make sure your `.env` file includes `TOR_DATA_PATH=./tor-data` (the `.env.example` already has it).
+
+### Getting the onion address
+
+After starting the containers, read it from the tor container logs:
+
+```bash
+docker compose logs tor
+```
+
+You'll see output like:
+
+```
+tor  | Waiting for Tor hidden service to be ready...
+tor  | ==========================================
+tor  |   Tor Hidden Service: xyzabc123def456.onion
+tor  |   Connect with Sparrow Wallet:
+tor  |     Server:   xyzabc123def456.onion
+tor  |     Port:     50001
+tor  |     Protocol: TCP (SSL disabled)
+tor  | ==========================================
+```
+
+You can also read the hostname file directly from the host:
+
+```bash
+cat ./tor-data/hostname
+```
+
+### Configuring Sparrow Wallet
+
+1. Open Sparrow → Preferences → Connection
+2. Set **Server Type** to "Electrum Server"
+3. Set **URL** to your `.onion` address (e.g., `xyzabc123def456.onion:50001`)
+4. Make sure Sparrow has Tor enabled in its settings (Tools → Restart in Tor mode, or configure the Tor SOCKS proxy under Preferences → Connection → Use Tor)
+5. Click "Test Connection"
+
+### Important notes
+
+- **Privacy**: The `.onion` address is public by design — it's how other nodes reach your service. The private key (in `./tor-data/private_key`) is what keeps it secure. Protect the tor-data directory.
+- **Back up `./tor-data/`** — losing the private key means getting a new `.onion` address and reconfiguring all connected wallets.
+- **Only electrs is exposed** via the hidden service. The bitcoind RPC and P2P ports are not routed through Tor — they remain local.
+- **The tor container is optional**. If you don't need remote access, just remove the `tor` service from `docker-compose.yaml` or don't set `TOR_DATA_PATH`.

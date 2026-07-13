@@ -43,3 +43,14 @@ services:
       - RUST_LOG=warn
     depends_on:
       - bitcoind
+
+  tor:
+    build:
+      context: .
+      dockerfile: tor/Dockerfile
+    container_name: tor
+    restart: unless-stopped
+    volumes:
+      - ${TOR_DATA_PATH}:/var/lib/tor/hidden_service
+    depends_on:
+      - electrs
