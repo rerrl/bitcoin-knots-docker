@@ -1,0 +1,19 @@
+# Tor configuration for Bitcoin Knots + electrs hidden service
+# The hidden service maps electrs's Electrum port to a .onion address
+
+HiddenServiceDir /var/lib/tor/hidden_service/
+HiddenServicePort 50001 electrs:50001
+
+# Store Tor state (consensus, descriptors) in the Alpine default location
+# Must be writable by the tor user after privilege drop
+DataDirectory /var/lib/tor/
+
+# Log to stdout so docker logs picks it up
+Log notice stdout
+
+# Run as a daemon in the background
+RunAsDaemon 0
+
+# Drop privileges to the tor user (Alpine tor package)
+# Required so the hidden service directory ownership check passes
+User tor
