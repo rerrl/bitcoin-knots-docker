@@ -45,6 +45,8 @@ services:
       - bitcoind
 
   tor:
+    profiles:
+      - tor
     build:
       context: .
       dockerfile: tor/Dockerfile

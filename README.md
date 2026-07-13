@@ -22,8 +22,10 @@ Edit `.env` to set your desired paths and configuration. For development, the de
 4. Create your data directories (if using default paths):
 
 ```bash
-mkdir bitcoin-data electrs-data tor-data
+mkdir bitcoin-data electrs-data
 ```
+
+Optionally create a `tor-data` directory if you plan to enable Tor (see Tor section below).
 
 5. Build and start the containers:
 
@@ -101,15 +103,33 @@ The tor container creates a Tor hidden service that exposes electrs's Electrum p
 3. On startup, `tor/entrypoint.sh` waits for Tor to generate the hostname and prints the `.onion` address to the container logs
 4. The onion address and its private key persist in `./tor-data/` (the mounted volume), so the address stays the same across restarts
 
-### Before starting
+### Enabling Tor (disabled by default)
 
-Create the Tor data directory:
+Tor is **disabled by default** — the tor container only starts when you activate it.
 
-```bash
-mkdir tor-data
-```
+1. **Uncomment the profile line** in your `.env` file:
 
-Make sure your `.env` file includes `TOR_DATA_PATH=./tor-data` (the `.env.example` already has it).
+   ```
+   COMPOSE_PROFILES=tor
+   ```
+
+   This tells Docker Compose to include the `tor` profile on every `docker compose up`.
+
+2. **Create the Tor data directory** (stores the `.onion` private key so the address is stable):
+
+   ```bash
+   mkdir tor-data
+   ```
+
+3. **Make sure `TOR_DATA_PATH` is set** — `.env.example` already includes `TOR_DATA_PATH=./tor-data`. If you copied `.env.example` to `.env` before this change, add it manually:
+
+   ```
+   TOR_DATA_PATH=./tor-data
+   ```
+
+That's it. Next `docker compose up` will build and start the tor container automatically.
+
+To disable it again, just comment out or remove `COMPOSE_PROFILES=tor` from `.env`.
 
 ### Getting the onion address
 
@@ -151,4 +171,4 @@ cat ./tor-data/hostname
 - **Privacy**: The `.onion` address is public by design — it's how other nodes reach your service. The private key (in `./tor-data/private_key`) is what keeps it secure. Protect the tor-data directory.
 - **Back up `./tor-data/`** — losing the private key means getting a new `.onion` address and reconfiguring all connected wallets.
 - **Only electrs is exposed** via the hidden service. The bitcoind RPC and P2P ports are not routed through Tor — they remain local.
-- **The tor container is optional**. If you don't need remote access, just remove the `tor` service from `docker-compose.yaml` or don't set `TOR_DATA_PATH`.
+- **The tor container is disabled by default** via Docker Compose profiles. It only starts if `COMPOSE_PROFILES=tor` is set in your `.env` file. To disable an existing setup, just comment out that line.
