@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+# Fix permissions on the mounted host directory — Tor requires 700
+# owned by the tor user, but Docker volumes inherit host permissions
+chown -R tor:tor /var/lib/tor/hidden_service/ 2>/dev/null || true
+chmod 700 /var/lib/tor/hidden_service/ 2>/dev/null || true
+
 # Start Tor in the background
 tor -f /etc/tor/torrc &
 
