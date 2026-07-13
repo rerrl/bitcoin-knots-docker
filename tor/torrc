@@ -12,3 +12,7 @@ Log notice stdout
 
 # Run as a daemon in the background
 RunAsDaemon 0
+
+# Drop privileges to the tor user (Alpine tor package)
+# Required so the hidden service directory ownership check passes
+User tor
