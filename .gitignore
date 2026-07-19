@@ -1,5 +1,7 @@
 bitcoin-data
 electrs-data
 tor-data
+lnd-data
+lit-data
 bitcoin.conf
 .env
