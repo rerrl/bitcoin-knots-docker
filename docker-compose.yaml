@@ -77,7 +77,7 @@ services:
   lit:
     profiles:
       - lnd
-    image: lightninglabs/lightning-terminal:v0.17.0-alpha-path-prefix
+    image: lightninglabs/lightning-terminal:v0.17.0-alpha
     container_name: lit
     restart: unless-stopped
     volumes:
