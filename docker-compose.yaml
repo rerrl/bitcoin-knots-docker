@@ -56,3 +56,34 @@ services:
       - ${TOR_DATA_PATH}:/var/lib/tor/hidden_service
     depends_on:
       - electrs
+
+  lnd:
+    profiles:
+      - lnd
+    image: lightninglabs/lnd:daily-testing-only
+    container_name: lnd
+    restart: unless-stopped
+    volumes:
+      - ${LND_DATA_PATH}:/root/.lnd
+      - ./lnd/lnd.conf:/root/.lnd/lnd.conf:ro
+      - ${BITCOIN_DATA_PATH}:/bitcoin:ro
+    ports:
+      - "10009:10009"   # gRPC
+      - "8080:8080"     # REST
+      - "9735:9735"     # P2P
+    depends_on:
+      - bitcoind
+
+  lit:
+    profiles:
+      - lnd
+    image: lightninglabs/lightning-terminal:v0.17.0-alpha-path-prefix
+    container_name: lit
+    restart: unless-stopped
+    volumes:
+      - ${LND_DATA_PATH}:/lnd:ro
+      - ${LIT_DATA_PATH}:/root/.lit
+    ports:
+      - "8443:8443"     # LiT web UI (HTTPS)
+    depends_on:
+      - lnd
