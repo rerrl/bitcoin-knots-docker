@@ -195,11 +195,12 @@ Both containers are gated behind a single Docker Compose profile — enable them
    mkdir lnd-data lit-data
    ```
 
-3. **Make sure the env vars are set** — `.env.example` already includes `LND_DATA_PATH=./lnd-data` and `LIT_DATA_PATH=./lit-data`. If you copied `.env` before this change, add them manually:
+3. **Make sure the env vars are set** — `.env.example` already includes `LND_DATA_PATH=./lnd-data`, `LIT_DATA_PATH=./lit-data`, and `LIT_UI_PASSWORD=changeme`. If you copied `.env` before this change, add them manually:
 
    ```
    LND_DATA_PATH=./lnd-data
    LIT_DATA_PATH=./lit-data
+   LIT_UI_PASSWORD=your-secure-password
    ```
 
 That's it. Next `docker compose up` will pull the images and start both containers.

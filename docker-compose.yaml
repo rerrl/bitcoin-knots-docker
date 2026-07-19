@@ -83,7 +83,11 @@ services:
     volumes:
       - ${LND_DATA_PATH}:/lnd:ro
       - ${LIT_DATA_PATH}:/root/.lit
+      - ./lit/entrypoint.sh:/entrypoint.sh:ro
     ports:
       - "8443:8443"     # LiT web UI (HTTPS)
+    environment:
+      - LIT_UI_PASSWORD=${LIT_UI_PASSWORD}
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
     depends_on:
       - lnd
