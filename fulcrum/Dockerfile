@@ -60,7 +60,7 @@ RUN mkdir -p /home/fulcrum/db /home/fulcrum/.fulcrum && \
     chown -R fulcrum:fulcrum /home/fulcrum
 
 # Copy configuration and entrypoint
-COPY --chown=fulcrum:fulcrum fulcrum.conf /home/fulcrum/.fulcrum/fulcrum.conf
+COPY --chown=fulcrum:fulcrum fulcrum/fulcrum.conf /home/fulcrum/.fulcrum/fulcrum.conf
 COPY --chown=fulcrum:fulcrum fulcrum/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
