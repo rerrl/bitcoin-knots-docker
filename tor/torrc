@@ -1,8 +1,8 @@
-# Tor configuration for Bitcoin Knots + electrs hidden service
-# The hidden service maps electrs's Electrum port to a .onion address
+# Tor configuration for Bitcoin Knots + fulcrum hidden service
+# The hidden service maps fulcrum's Electrum port to a .onion address
 
 HiddenServiceDir /var/lib/tor/hidden_service/
-HiddenServicePort 50001 electrs:50001
+HiddenServicePort 50001 fulcrum:50001
 
 # Store Tor state (consensus, descriptors) in the Alpine default location
 # Must be writable by the tor user after privilege drop
