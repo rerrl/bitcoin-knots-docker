@@ -1,9 +1,10 @@
-# Bitcoin Knots Docker Setup (v29.3.knots20260508)
+# Bitcoin Knots Docker Setup (v29.4.1.knots20260508) + Fulcrum (BLAKE2b)
 
-This repository provides a Docker-based setup for running Bitcoin Knots and electrs, with an optional Tor hidden service for remote Electrum access.
+This repository provides a Docker-based setup for running Bitcoin Knots and Fulcrum, with an optional Tor hidden service for remote Electrum access.
 
-**Current Bitcoin Knots Version**: 29.3.knots20260508
-**Source**: URLs pulled from https://bitcoinknots.org/
+**Current Bitcoin Knots Version**: 29.4.1.knots20260508
+**Current Fulcrum Version**: 2.1.2-blake2b (BLAKE2b proof-of-work support)
+**Source**: URLs pulled from https://bitcoinknots.org/ and https://github.com/privkeyio/Fulcrum/releases
 
 ## How to use
 
@@ -22,7 +23,7 @@ Edit `.env` to set your desired paths and configuration. For development, the de
 4. Create your data directories (if using default paths):
 
 ```bash
-mkdir bitcoin-data electrs-data
+mkdir bitcoin-data fulcrum-data
 ```
 
 Optionally create a `tor-data` directory if you plan to enable Tor (see Tor section below).
@@ -33,7 +34,7 @@ Optionally create a `tor-data` directory if you plan to enable Tor (see Tor sect
 docker compose up --build
 ```
 
-5. If you see an error from electrs saying it can't find the cookie file, make sure in your bitcoin.conf you're allowing the proper docker subnet IP. You can find this by running:
+5. If you see an error from fulcrum saying it can't find the cookie file, make sure in your bitcoin.conf you're allowing the proper docker subnet IP. You can find this by running:
 
 ```bash
 # Find the docker network name that these containers are on
@@ -54,23 +55,43 @@ When you run `docker-compose up --build`, the following happens:
 The Dockerfile implements a robust security verification process to ensure the authenticity of Bitcoin Knots binaries:
 
 1. **Multi-stage build**: Uses a separate builder stage to download and verify binaries before copying to the runtime container
-2. **Cryptographic verification**: 
+2. **Cryptographic verification**:
    - Downloads Bitcoin Knots binaries, SHA256SUMS, and SHA256SUMS.asc files
    - Imports trusted builder keys from the official Bitcoin Knots guix.sigs repository
    - Verifies the GPG signature on SHA256SUMS using these trusted keys
    - Validates the binary checksum against the signed SHA256SUMS file
 3. **Clean runtime**: Only verified binaries are copied to the final runtime container
 
+### Fulcrum Security & Authenticity
+
+Fulcrum is built with the same multi-stage verification approach:
+
+1. Downloads the Fulcrum tarball, shasums.txt, and shasums.txt.asc from the official release
+2. Imports the trusted Fulcrum release signer key (Kyle Santiago, fingerprint `A47D99B6DB0D715D40C59A2023AE8A8EA7E24E38`) from a keyserver
+3. Verifies the GPG signature on shasums.txt using the pinned key fingerprint
+4. Validates the binary checksum against the signed shasums.txt file
+5. Copies only the verified `Fulcrum` and `FulcrumAdmin` binaries into a slim `debian:bookworm-slim` runtime
+
 ### Container Architecture
 
 - **bitcoind container**: Runs Bitcoin Knots with user/group ID matching your host system to avoid permission issues
-- **electrs container**: Provides an Electrum server interface to the Bitcoin node
-- **tor container** (optional): Exposes electrs as a Tor hidden service so you can connect from remote wallets like Sparrow via Tor
-- Containers communicate over a Docker network, with electrs connecting to bitcoind's RPC interface, and tor connecting to electrs
+- **fulcrum container**: Provides an Electrum server interface to the Bitcoin node, running as the same host user ID so it can read bitcoind's `.cookie` file for RPC authentication
+- **tor container** (optional): Exposes fulcrum as a Tor hidden service so you can connect from remote wallets like Sparrow via Tor
+- Containers communicate over a Docker network, with fulcrum connecting to bitcoind's RPC interface, and tor connecting to fulcrum
+
+## Fulcrum configuration
+
+Fulcrum reads its settings from a config file baked into the image at `/home/fulcrum/.fulcrum/fulcrum.conf` (see `fulcrum/fulcrum.conf`). To override, mount a custom conf file over that path in your compose file.
+
+The default config:
+- `datadir = /home/fulcrum/db` (persisted via the `${FULCRUM_DATA_PATH}` volume)
+- `bitcoind = bitcoind:8332` (container hostname)
+- `rpccookie = /home/bitcoin/.bitcoin/.cookie` (auth via bitcoind's cookie, no secrets in env)
+- `tcp = 0.0.0.0:50001` (Electrum TCP, matching the port electrs used)
 
 ### Data Storage
 
-**Development/Testing**: By default, data is stored in local directories (`./bitcoin-data`, `./electrs-data`, and `./tor-data`)
+**Development/Testing**: By default, data is stored in local directories (`./bitcoin-data`, `./fulcrum-data`, and `./tor-data`)
 
 **Production**: For production deployments, you should use external storage volumes (like dedicated SSDs) mounted to your host system:
 
@@ -79,27 +100,26 @@ The Dockerfile implements a robust security verification process to ensure the a
    # Example: mount external SSD to /mnt/bitcoin-storage
    sudo mount /dev/sdX1 /mnt/bitcoin-storage
    sudo mkdir -p /mnt/bitcoin-storage/bitcoin-data
-   sudo mkdir -p /mnt/bitcoin-storage/electrs-data
+   sudo mkdir -p /mnt/bitcoin-storage/fulcrum-data
    ```
 
 2. **Update your .env file** to use the mounted paths:
    ```bash
    # Production paths in .env
    BITCOIN_DATA_PATH=/mnt/bitcoin-storage/bitcoin-data
-   ELECTRS_DATA_PATH=/mnt/bitcoin-storage/electrs-data
-   ELECTRS_SERVER_BANNER=Production Bitcoin Node
+   FULCRUM_DATA_PATH=/mnt/bitcoin-storage/fulcrum-data
    ```
 
 This approach provides better performance, dedicated storage space, and easier backup/migration capabilities. Make sure to set proper ownership and permissions on the mounted directories to match your container user IDs.
 
 ## Tor Hidden Service (Remote Access)
 
-The tor container creates a Tor hidden service that exposes electrs's Electrum port (50001) as a `.onion` address. This lets you connect to your node remotely from wallets that support Tor (like Sparrow Wallet).
+The tor container creates a Tor hidden service that exposes fulcrum's Electrum port (50001) as a `.onion` address. This lets you connect to your node remotely from wallets that support Tor (like Sparrow Wallet).
 
 ### How it works
 
 1. The tor container builds from `tor/Dockerfile` (Alpine + Tor)
-2. `tor/torrc` configures a hidden service mapping port 50001 to `electrs:50001`
+2. `tor/torrc` configures a hidden service mapping port 50001 to `fulcrum:50001`
 3. On startup, `tor/entrypoint.sh` waits for Tor to generate the hostname and prints the `.onion` address to the container logs
 4. The onion address and its private key persist in `./tor-data/` (the mounted volume), so the address stays the same across restarts
 
@@ -170,5 +190,26 @@ cat ./tor-data/hostname
 
 - **Privacy**: The `.onion` address is public by design — it's how other nodes reach your service. The private key (in `./tor-data/private_key`) is what keeps it secure. Protect the tor-data directory.
 - **Back up `./tor-data/`** — losing the private key means getting a new `.onion` address and reconfiguring all connected wallets.
-- **Only electrs is exposed** via the hidden service. The bitcoind RPC and P2P ports are not routed through Tor — they remain local.
+- **Only fulcrum is exposed** via the hidden service. The bitcoind RPC and P2P ports are not routed through Tor — they remain local.
 - **The tor container is disabled by default** via Docker Compose profiles. It only starts if `COMPOSE_PROFILES=tor` is set in your `.env` file. To disable an existing setup, just comment out that line.
+
+## Removing / Tearing down
+
+To stop and remove all containers (data volumes persist):
+
+```bash
+docker compose down
+```
+
+To stop and remove containers AND the named/created volumes:
+
+```bash
+docker compose down -v
+```
+
+To fully reset, also remove the local data directories:
+
+```bash
+docker compose down -v
+rm -rf bitcoin-data fulcrum-data tor-data
+```

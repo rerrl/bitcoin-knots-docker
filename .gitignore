@@ -1,5 +1,6 @@
 bitcoin-data
-electrs-data
+fulcrum-data
 tor-data
 bitcoin.conf
 .env
+.aider*
