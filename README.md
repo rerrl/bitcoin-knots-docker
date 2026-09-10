@@ -1,6 +1,6 @@
-# Bitcoin Knots Docker Setup (v29.4.1.knots20260508) + Fulcrum (BLAKE2b)
+# Bitcoin Knots Docker Setup (v29.4.1.knots20260508) + Fulcrum (BLAKE2b) + Dashboard
 
-This repository provides a Docker-based setup for running Bitcoin Knots and Fulcrum, with an optional Tor hidden service for remote Electrum access.
+This repository provides a Docker-based setup for running Bitcoin Knots and Fulcrum, with an optional Tor hidden service for remote Electrum access, plus a read-only web dashboard for checking on everything at a glance.
 
 **Current Bitcoin Knots Version**: 29.4.1.knots20260508
 **Current Fulcrum Version**: 2.1.2-blake2b (BLAKE2b proof-of-work support)
@@ -23,7 +23,7 @@ Edit `.env` to set your desired paths and configuration. For development, the de
 4. Create your data directories (if using default paths):
 
 ```bash
-mkdir bitcoin-data fulcrum-data
+mkdir bitcoin-data fulcrum-data logs
 ```
 
 Optionally create a `tor-data` directory if you plan to enable Tor (see Tor section below).
@@ -77,7 +77,8 @@ Fulcrum is built with the same multi-stage verification approach:
 - **bitcoind container**: Runs Bitcoin Knots with user/group ID matching your host system to avoid permission issues
 - **fulcrum container**: Provides an Electrum server interface to the Bitcoin node, running as the same host user ID so it can read bitcoind's `.cookie` file for RPC authentication
 - **tor container** (optional): Exposes fulcrum as a Tor hidden service so you can connect from remote wallets like Sparrow via Tor
-- Containers communicate over a Docker network, with fulcrum connecting to bitcoind's RPC interface, and tor connecting to fulcrum
+- **dashboard container**: A read-only web UI for checking sync progress, logs, configs, and the .onion address at a glance
+- Containers communicate over a Docker network, with fulcrum connecting to bitcoind's RPC interface, tor connecting to fulcrum, and the dashboard observing the whole stack
 
 ## Fulcrum configuration
 
@@ -192,6 +193,29 @@ cat ./tor-data/hostname
 - **Back up `./tor-data/`** — losing the private key means getting a new `.onion` address and reconfiguring all connected wallets.
 - **Only fulcrum is exposed** via the hidden service. The bitcoind RPC and P2P ports are not routed through Tor — they remain local.
 - **The tor container is disabled by default** via Docker Compose profiles. It only starts if `COMPOSE_PROFILES=tor` is set in your `.env` file. To disable an existing setup, just comment out that line.
+
+## Dashboard (Web UI)
+
+The dashboard is a small, read-only web UI that ships with the stack so you can see at a glance whether everything is working — no SSH gymnastics required. Open it at `http://localhost:8080` (or whatever you set `DASHBOARD_PORT` to).
+
+### What it shows
+
+- **Overview tab**: Bitcoin sync progress (block height / headers / % synced via `getblockchaininfo`), Fulcrum index reachability, Tor status, and your `.onion` address with a ready-to-paste Sparrow Wallet connection snippet.
+- **Logs tab**: live last-N-lines of each service — `bitcoind` (from its own `debug.log`), `fulcrum`, and `tor` (from the shared `./logs` volume). Auto-refreshes every 5s.
+- **Configs tab**: read-only view of the active `bitcoin.conf` and `fulcrum.conf`.
+
+### Design notes
+
+- It is **observe-only**: it performs no writes, exposes no start/stop/restart buttons, and never touches the Docker socket. Lifecycle stays in Docker Compose.
+- It runs as the same user ID as the rest of the stack so it can read bitcoind's `.cookie` (for RPC status) and the log/config files without running as root.
+- It listens with **no auth** by default because it binds inside the container and is only intended to be reached on the host. If you expose the dashboard port beyond your local machine (e.g. LAN or the internet), put it behind a reverse proxy with authentication — it should not be publicly reachable unauthenticated.
+- The `./logs` directory is shared by `fulcrum` and `tor` (their output is teed there), while `bitcoind` keeps its native `debug.log`. `bitcoind` is left untouched so its graceful-shutdown behaviour is preserved.
+
+### If the dashboard cannot connect
+
+- **Bitcoin shows "no connection"**: reopen the RPC firewall/allow-IP setting in `bitcoin.conf` (see the "How to use" note about the Docker subnet) — Fulcrum and the dashboard both rely on the `.cookie` over RPC.
+- **Tor shows "off"**: you haven't set `COMPOSE_PROFILES=tor` in `.env`, so there is nothing to show. That is expected.
+- **Fulcrum logs look empty**: the shared `./logs` dir may not exist yet. Create it with `mkdir logs` and restart (`docker compose restart fulcrum`).
 
 ## Removing / Tearing down
 

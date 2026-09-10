@@ -1,6 +1,7 @@
 bitcoin-data
 fulcrum-data
 tor-data
+logs
 bitcoin.conf
 .env
 .aider*

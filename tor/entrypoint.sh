@@ -7,8 +7,17 @@ chown -R tor:tor /var/lib/tor/ 2>/dev/null || true
 chmod 700 /var/lib/tor/ 2>/dev/null || true
 chmod 700 /var/lib/tor/hidden_service/ 2>/dev/null || true
 
-# Start Tor in the background
-tor -f /etc/tor/torrc &
+# Shared logs volume: make sure our log file exists and is readable by the
+# dashboard (tor drops privileges to the `tor` user after startup, so open the
+# file up enough that both the tor user and the dashboard's uid can use it).
+mkdir -p /logs
+touch /logs/tor.log
+chown tor:tor /logs/tor.log 2>/dev/null || true
+chmod 0666 /logs/tor.log 2>/dev/null || true
+
+# Start Tor in the background, logging to the shared file (visible in the
+# dashboard) instead of to stdout.
+tor -f /etc/tor/torrc >>/logs/tor.log 2>&1 &
 
 # Wait for the hidden service hostname to be generated
 echo "Waiting for Tor hidden service to be ready..."
@@ -30,6 +39,7 @@ echo "  Connect with Sparrow Wallet:"
 echo "    Server: $ONION_ADDRESS"
 echo "    Port:   50001"
 echo "    Protocol: TCP (SSL disabled)"
+echo "  See it in the dashboard under Overview -> Connect with Sparrow."
 echo "=========================================="
 
 # Wait for the tor background process
