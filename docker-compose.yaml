@@ -66,13 +66,11 @@ services:
       - DASHBOARD_FULCRUM_PORT=50001
       - DASHBOARD_LOGDIR=/logs
       - DASHBOARD_FULCRUM_CONF=/confs/fulcrum.conf
-      - DASHBOARD_TORDATADIR=/tor-data
-      - DASHBOARD_TOR_HOSTNAME=/tor-data/hostname
+      - DASHBOARD_TOR_HOSTNAME=/logs/tor-hostname
       - DASHBOARD_BITCOIN_CONF=/home/bitcoin/.bitcoin/bitcoin.conf
     volumes:
       - ${BITCOIN_DATA_PATH}:/home/bitcoin/.bitcoin:ro # For .cookie, debug.log, bitcoin.conf
-      - ${LOG_DATA_PATH}:/logs:ro # Shared logs
-      - ${TOR_DATA_PATH}:/tor-data:ro # For the .onion hostname
+      - ${LOG_DATA_PATH}:/logs:ro # Shared logs + tor-hostname
       - ./fulcrum/fulcrum.conf:/confs/fulcrum.conf:ro # For the conf viewer
     ports:
       - "${DASHBOARD_PORT:-8080}:8080" # Dashboard UI

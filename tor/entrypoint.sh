@@ -31,6 +31,14 @@ while [ ! -f /var/lib/tor/hidden_service/hostname ]; do
   fi
 done
 
+# Publish a readable copy of the onion into the shared /logs volume so the
+# dashboard (a separate container/uid) can read it. The hidden-service dir
+# itself stays 0700-owned-by-tor (Tor refuses to serve it otherwise), which is
+# exactly why other uids can't read hostname directly from there. /logs is
+# world-usable, so this copy is the clean handoff channel.
+cp /var/lib/tor/hidden_service/hostname /logs/tor-hostname
+chmod 0644 /logs/tor-hostname
+
 # Display the onion address
 ONION_ADDRESS=$(cat /var/lib/tor/hidden_service/hostname)
 echo "=========================================="
