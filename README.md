@@ -26,6 +26,13 @@ Edit `.env` to set your desired paths and configuration. For development, the de
 mkdir bitcoin-data fulcrum-data logs
 ```
 
+> If you run `docker compose up` as root (common on production boxes), the
+> fulcrum, tor, and dashboard entrypoints now fix ownership of these dirs
+> themselves, so no manual `chown` is needed. The one exception is
+> `bitcoin-data`: bitcoind does not self-heal ownership, so if it was created
+> by a root-run compose and you see write errors from bitcoind, fix it once
+> with `sudo chown -R $(grep '^USER_ID=' .env | cut -d= -f2):$(grep '^GROUP_ID=' .env | cut -d= -f2) bitcoin-data`.
+
 Optionally create a `tor-data` directory if you plan to enable Tor (see Tor section below).
 
 5. Build and start the containers:
@@ -120,7 +127,7 @@ The tor container creates a Tor hidden service that exposes fulcrum's Electrum p
 ### How it works
 
 1. The tor container builds from `tor/Dockerfile` (Alpine + Tor)
-2. `tor/torrc` configures a hidden service mapping port 50001 to `fulcrum:50001`
+2. `tor/torrc` configures a hidden service mapping port 50001 to the fulcrum container. Tor only accepts numeric IP targets (it can't resolve hostnames), so `tor/entrypoint.sh` resolves fulcrum's container address from `/etc/hosts` and rewrites the config at startup
 3. On startup, `tor/entrypoint.sh` waits for Tor to generate the hostname and prints the `.onion` address to the container logs
 4. The onion address and its private key persist in `./tor-data/` (the mounted volume), so the address stays the same across restarts
 

@@ -40,10 +40,12 @@ RUN tar -xzf Fulcrum-${FULCRUM_VERSION}-x86_64-linux.tar.gz
 FROM debian:bookworm-slim
 
 # Install runtime dependencies (Fulcrum statically links Qt/libstdc++/OpenSSL,
-# only needs libbz2 and zlib at runtime)
+# only needs libbz2 and zlib at runtime). su-exec lets the entrypoint run as
+# root to fix host bind-mount ownership, then drop to the fulcrum user.
 RUN apt-get update && apt-get install -y \
     libbz2-1.0 \
     zlib1g \
+    su-exec \
     && rm -rf /var/lib/apt/lists/*
 
 # Get host user ID to avoid permission issues (must match bitcoind's user so
@@ -67,8 +69,9 @@ COPY --chown=fulcrum:fulcrum fulcrum/fulcrum.conf /home/fulcrum/.fulcrum/fulcrum
 COPY --chown=fulcrum:fulcrum fulcrum/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Switch to fulcrum user
-USER fulcrum
+# Run as root so the entrypoint can fix host bind-mount ownership, then
+# drop to the fulcrum user via su-exec (see entrypoint.sh). Drops to the same
+# uid as bitcoind's user so Fulcrum can still read bitcoind's .cookie for RPC.
 WORKDIR /home/fulcrum
 
 # Expose ports

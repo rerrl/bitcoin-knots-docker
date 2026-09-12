@@ -25,7 +25,8 @@ services:
         GROUP_ID: ${GROUP_ID}
     container_name: fulcrum
     restart: unless-stopped
-    user: "${USER_ID}:${GROUP_ID}" # Match bitcoin-knots user for .cookie read access
+    # Runs as root so the entrypoint can fix host bind-mount ownership, then
+    # drops to the fulcrum user (a.k.a. USER_ID:GROUP_ID) via su-exec.
     volumes:
       - ${BITCOIN_DATA_PATH}:/home/bitcoin/.bitcoin:ro # Read-only for .cookie
       - ${FULCRUM_DATA_PATH}:/home/fulcrum/db
