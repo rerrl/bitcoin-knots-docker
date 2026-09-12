@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitcoin Knots Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222c; --border: #2a2f3a;
+    --text: #e6e8ee; --muted: #8b93a3; --accent: #f7931a; --good: #2ecc71;
+    --bad: #e74c3c; --warn: #f39c12; --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  header { display:flex; align-items:center; gap:12px; padding:16px 24px; border-bottom:1px solid var(--border); background:var(--panel); }
+  header .logo { width:28px; height:28px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:16px; }
+  header h1 { font-size:16px; font-weight:600; margin:0; }
+  header .sub { color:var(--muted); font-size:12px; }
+  header .status-dot { width:9px; height:9px; border-radius:50%; background:var(--muted); margin-left:auto; }
+  header .status-dot.ok { background:var(--good); } header .status-dot.warn { background:var(--warn); }
+  nav { display:flex; gap:8px; padding:10px 24px; border-bottom:1px solid var(--border); background:var(--panel); }
+  nav button { background:none; border:1px solid transparent; color:var(--muted); font-size:13px; padding:7px 14px; border-radius:8px; cursor:pointer; }
+  nav button.active { color:var(--text); border-color:var(--border); background:var(--panel2); }
+  main { padding:24px; max-width:1000px; margin:0 auto; }
+  section.tab { display:none; } section.tab.active { display:block; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-bottom:20px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .card h3 { margin:0 0 12px; font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .card .big { font-size:26px; font-weight:700; font-family:var(--mono); }
+  .card .lbl { font-size:12px; color:var(--muted); margin-top:4px; }
+  .card .val { color:var(--text); }
+  .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+  .pill.good { background:rgba(46,204,113,.15); color:var(--good); }
+  .pill.bad { background:rgba(231,76,60,.15); color:var(--bad); }
+  .pill.warn { background:rgba(243,156,18,.15); color:var(--warn); }
+  .pill.muted { background:rgba(139,147,163,.15); color:var(--muted); }
+
+  .progress { background:var(--panel2); border-radius:8px; height:10px; overflow:hidden; margin-top:8px; }
+  .progress>div { height:100%; background:var(--accent); border-radius:8px; }
+
+  .block { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .block h3 { margin:0 0 10px; font-size:14px; }
+  .hint { color:var(--muted); font-size:12px; margin:6px 0 0; }
+  .code { background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:12px; font-family:var(--mono); font-size:12px; white-space:pre-wrap; word-break:break-all; margin:8px 0; }
+  .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .btn { background:var(--panel2); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; }
+  .btn.copy { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.ghost { background:none; }
+  select, input { background:var(--panel2); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:8px; font-size:13px; }
+  pre.log { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px; font-family:var(--mono); font-size:11px; white-space:pre-wrap; word-break:break-word; max-height:560px; overflow:auto; }
+  .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  .footer { color:var(--muted); font-size:11px; text-align:center; padding:20px; }
+  .err { color:var(--bad); font-size:12px; }
+  .muted-text { color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">₿</div>
+  <div>
+    <h1>Bitcoin Knots Dashboard</h1>
+    <div class="sub" id="header-sub">loading...</div>
+  </div>
+  <div class="status-dot" id="head-dot" title="overall status"></div>
+</header>
+
+<nav>
+  <button data-tab="overview" class="active">Overview</button>
+  <button data-tab="logs">Logs</button>
+  <button data-tab="configs">Configs</button>
+</nav>
+
+<main>
+  <!-- OVERVIEW -->
+  <section id="tab-overview" class="tab active">
+    <div class="grid">
+      <div class="card">
+        <h3>Bitcoin Node</h3>
+        <div class="big" id="b-blocks">&mdash;</div>
+        <div class="lbl" id="b-state">loading...</div>
+      </div>
+      <div class="card">
+        <h3>Sync Progress</h3>
+        <div class="big" id="b-progress">&mdash;</div>
+        <div class="progress" id="b-progress-bar"><div style="width:0%"></div></div>
+        <div class="lbl" id="b-headers"></div>
+      </div>
+      <div class="card">
+        <h3>Fulcrum Index</h3>
+        <div class="big" id="f-status">&mdash;</div>
+        <div class="lbl" id="f-lbl">Electrum server</div>
+      </div>
+      <div class="card">
+        <h3>Tor</h3>
+        <div class="big" id="tor-state">&mdash;</div>
+        <div class="lbl" id="tor-lbl">remote access</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>Connect with Sparrow Wallet</h3>
+      <p class="hint">If Tor is enabled (<code>COMPOSE_PROFILES=tor</code>), your node is reachable remotely via this .onion address:</p>
+      <div class="code" id="onion">&mdash; (tor not enabled)</div>
+      <div class="row">
+        <button class="btn copy" id="copy-onion">Copy .onion</button>
+      </div>
+      <p class="hint">In Sparrow: Preferences &rarr; Connection, Server Type = Electrum Server, URL =
+        <span class="code" id="sparrow-url">.onion:50001</span>. Enable Tor in Sparrow and click "Test Connection".</p>
+    </div>
+  </section>
+
+  <!-- LOGS -->
+  <section id="tab-logs" class="tab">
+    <div class="toolbar">
+      <select id="log-service">
+        <option value="bitcoind">bitcoind</option>
+        <option value="fulcrum">fulcrum</option>
+        <option value="tor">tor</option>
+      </select>
+      <button class="btn" id="log-refresh">Refresh</button>
+      <label class="muted-text"><input type="checkbox" id="log-autorefresh" checked> auto-refresh (5s)</label>
+      <span class="muted-text" id="log-meta"></span>
+    </div>
+    <pre class="log" id="log-out">loading...</pre>
+  </section>
+
+  <!-- CONFIGS -->
+  <section id="tab-configs" class="tab">
+    <div class="toolbar">
+      <button class="btn ghost" id="conf-bitcoin">bitcoin.conf</button>
+      <button class="btn ghost" id="conf-fulcrum">fulcrum.conf</button>
+    </div>
+    <pre class="log" id="conf-out">loading...</pre>
+  </section>
+</main>
+
+<div class="footer">Read-only dashboard &mdash; observes the stack, never modifies it. Built for Bitcoin Knots + Fulcrum (BLAKE2b).</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let statusData = null;
+
+// ---- tabs ----
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('section.tab').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'logs') loadLogs();
+    if (btn.dataset.tab === 'configs') loadConfs('bitcoin');
+  });
+});
+
+// ---- status ----
+async function loadStatus() {
+  try {
+    const r = await fetch('/api/status');
+    statusData = await r.json();
+    renderStatus(statusData);
+  } catch (e) {
+    $('b-state').textContent = 'unreachable';
+    $('head-dot').className = 'status-dot warn';
+    $('header-sub').textContent = 'dashboard API unreachable';
+  }
+}
+
+function pct(x) {
+  if (x === null || x === undefined) return 0;
+  return Math.min(100, Math.max(0, Math.round(x * 100)));
+}
+
+function renderStatus(d) {
+  const bc = d.bitcoin || {};
+  const ok = !!d.up;
+  const elapsed = bc.verificationprogress ? (bc.verificationprogress * 100).toFixed(1) : null;
+  const synced = bc.verificationprogress === 1 || (bc.headers && bc.blocks && bc.headers <= bc.blocks);
+
+  $('header-sub').textContent = (bc.blocks !== undefined && bc.headers !== undefined)
+    ? `block ${bc.blocks} / ${bc.headers}`
+    : (ok ? 'bitcoind connected' : 'bitcoind unreachable');
+
+  // dot
+  $('head-dot').className = 'status-dot ' + (ok ? 'ok' : 'warn');
+
+  // node
+  if (!ok || bc.error) {
+    $('b-blocks').textContent = '&mdash;';
+    $('b-state').textContent = (bc.error || 'no connection to bitcoind').slice(0, 60);
+  } else {
+    $('b-blocks').textContent = bc.blocks !== undefined ? String(bc.blocks) : '&mdash;';
+    $('b-state').textContent = 'pruned: ' + (bc.pruned ? 'yes' : 'no') + ' &middot; ' + (bc.chain || 'main');
+  }
+
+  // progress
+  if (synced) {
+    $('b-progress').textContent = '100%';
+    $('b-progress').style.color = 'var(--good)';
+  } else if (elapsed !== null) {
+    $('b-progress').textContent = elapsed + '%';
+    $('b-progress').style.color = '';
+  } else {
+    $('b-progress').textContent = '&mdash;';
+  }
+  $('b-progress-bar').querySelector('div').style.width = (elapsed !== null ? pct(bc.verificationprogress) : 0) + '%';
+  $('b-headers').textContent = bc.headers !== undefined ? `headers: ${bc.headers}` : '';
+
+  // fulcrum
+  const f = d.fulcrum || {};
+  if (f.reachable) {
+    $('f-status').textContent = 'UP';
+    $('f-status').style.color = 'var(--good)';
+    $('f-lbl').textContent = (f.banner || 'electrum server responding').slice(0, 40);
+  } else {
+    $('f-status').textContent = 'Down';
+    $('f-status').style.color = 'var(--bad)';
+    $('f-lbl').textContent = (f.error || 'not reachable').slice(0, 50);
+  }
+
+  // tor
+  const t = d.tor || {};
+  if (t.enabled && t.onion) {
+    $('tor-state').textContent = 'ON';
+    $('tor-state').style.color = 'var(--good)';
+    $('tor-lbl').textContent = 'remote electrum ready';
+    $('onion').textContent = t.onion;
+    $('sparrow-url').textContent = t.onion + ':50001';
+    $('copy-onion').style.display = '';
+  } else {
+    $('tor-state').textContent = 'Off';
+    $('tor-state').style.color = 'var(--muted)';
+    $('tor-lbl').textContent = (t.error || 'set COMPOSE_PROFILES=tor to enable').slice(0, 50);
+    $('onion').textContent = '&mdash; tor not enabled';
+    $('sparrow-url').textContent = '(enable tor to connect remotely)';
+    $('copy-onion').style.display = 'none';
+  }
+}
+
+$('copy-onion').addEventListener('click', async () => {
+  const onion = (statusData && statusData.tor && statusData.tor.onion) || '';
+  if (!onion) return;
+  try { await navigator.clipboard.writeText(onion); $('copy-onion').textContent = 'Copied'; setTimeout(()=>$('copy-onion').textContent='Copy .onion', 1200); }
+  catch(e) { /* clipboard may be blocked over http */ }
+});
+
+// ---- logs ----
+let logTimer = null;
+function scheduleLogRefresh() {
+  if (logTimer) clearTimeout(logTimer);
+  if ($('log-autorefresh').checked) logTimer = setTimeout(loadLogs, 5000);
+}
+async function loadLogs() {
+  const svc = $('log-service').value;
+  $('log-out').textContent = 'loading...';
+  try {
+    const r = await fetch('/api/logs?service=' + svc);
+    const d = await r.json();
+    $('log-out').textContent = d.error ? ('( '+d.error+' )') : d.content;
+    $('log-meta').textContent = d.content ? `${d.content.split('\n').length} lines` : '';
+  } catch (e) {
+    $('log-out').textContent = 'failed to fetch logs';
+  }
+  scheduleLogRefresh();
+}
+$('log-service').addEventListener('change', loadLogs);
+$('log-refresh').addEventListener('click', () => { if(logTimer) clearTimeout(logTimer); loadLogs(); });
+$('log-autorefresh').addEventListener('change', () => { if(logTimer) clearTimeout(logTimer); if ($('log-autorefresh').checked) loadLogs(); });
+
+// ---- configs ----
+let confMode = 'bitcoin';
+async function loadConfs(mode) {
+  confMode = mode || confMode;
+  $('conf-out').textContent = 'loading...';
+  try {
+    const r = await fetch('/api/confs');
+    const d = await r.json();
+    const c = d[confMode] || {};
+    $('conf-out').textContent = c.error ? ('( '+c.error+' )') : c.content;
+  } catch (e) {
+    $('conf-out').textContent = 'failed to fetch configs';
+  }
+}
+$('conf-bitcoin').addEventListener('click', () => loadConfs('bitcoin'));
+$('conf-fulcrum').addEventListener('click', () => loadConfs('fulcrum'));
+
+// ---- init ----
+loadStatus();
+setInterval(loadStatus, 5000);
+</script>
+</body>
+</html>

@@ -67,8 +67,10 @@ COPY --chown=fulcrum:fulcrum fulcrum/fulcrum.conf /home/fulcrum/.fulcrum/fulcrum
 COPY --chown=fulcrum:fulcrum fulcrum/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Switch to fulcrum user
-USER fulcrum
+# Run as root so the entrypoint can fix host bind-mount ownership, then
+# drop to the fulcrum user via setpriv (part of util-linux, already in the base
+# image). Drops to the same uid as bitcoind's user so Fulcrum can still read
+# bitcoind's .cookie for RPC.
 WORKDIR /home/fulcrum
 
 # Expose ports

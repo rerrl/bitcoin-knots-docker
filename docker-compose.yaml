@@ -25,10 +25,12 @@ services:
         GROUP_ID: ${GROUP_ID}
     container_name: fulcrum
     restart: unless-stopped
-    user: "${USER_ID}:${GROUP_ID}" # Match bitcoin-knots user for .cookie read access
+    # Runs as root so the entrypoint can fix host bind-mount ownership, then
+    # drops to the fulcrum user (a.k.a. USER_ID:GROUP_ID) via setpriv.
     volumes:
       - ${BITCOIN_DATA_PATH}:/home/bitcoin/.bitcoin:ro # Read-only for .cookie
       - ${FULCRUM_DATA_PATH}:/home/fulcrum/db
+      - ${LOG_DATA_PATH}:/logs # Shared logs for the dashboard
     ports:
       - "50001:50001" # Electrum TCP port
     depends_on:
@@ -44,5 +46,34 @@ services:
     restart: unless-stopped
     volumes:
       - ${TOR_DATA_PATH}:/var/lib/tor/hidden_service
+      - ${LOG_DATA_PATH}:/logs # Shared logs for the dashboard
     depends_on:
       - fulcrum
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+    container_name: dashboard
+    restart: unless-stopped
+    environment:
+      - DASHBOARD_LISTEN=0.0.0.0:8080
+      - DASHBOARD_BITCOIND_RPC=http://bitcoind:8332
+      - DASHBOARD_BITCOIND_DATADIR=/home/bitcoin/.bitcoin
+      - DASHBOARD_FULCRUM_HOST=fulcrum
+      - DASHBOARD_FULCRUM_PORT=50001
+      - DASHBOARD_LOGDIR=/logs
+      - DASHBOARD_FULCRUM_CONF=/confs/fulcrum.conf
+      - DASHBOARD_TOR_HOSTNAME=/logs/tor-hostname
+      - DASHBOARD_BITCOIN_CONF=/home/bitcoin/.bitcoin/bitcoin.conf
+    volumes:
+      - ${BITCOIN_DATA_PATH}:/home/bitcoin/.bitcoin:ro # For .cookie, debug.log, bitcoin.conf
+      - ${LOG_DATA_PATH}:/logs:ro # Shared logs + tor-hostname
+      - ./fulcrum/fulcrum.conf:/confs/fulcrum.conf:ro # For the conf viewer
+    ports:
+      - "${DASHBOARD_PORT:-8080}:8080" # Dashboard UI
+    depends_on:
+      - bitcoind
