@@ -22,5 +22,6 @@ chown fulcrum:fulcrum /logs/fulcrum.log 2>/dev/null || true
 chmod 0644 /logs/fulcrum.log
 
 # Drop to the fulcrum user and run, teeing output to the shared log file for
-# the dashboard while keeping it visible in `docker compose logs`.
-exec su-exec fulcrum "$@" 2>&1 | tee -a /logs/fulcrum.log
+# the dashboard while keeping it visible in `docker compose logs`. setpriv is
+# part of util-linux (in the base image) — no extra package needed.
+exec setpriv --reuid=fulcrum --regid=fulcrum --init-groups "$@" 2>&1 | tee -a /logs/fulcrum.log

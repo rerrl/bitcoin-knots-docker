@@ -26,7 +26,7 @@ services:
     container_name: fulcrum
     restart: unless-stopped
     # Runs as root so the entrypoint can fix host bind-mount ownership, then
-    # drops to the fulcrum user (a.k.a. USER_ID:GROUP_ID) via su-exec.
+    # drops to the fulcrum user (a.k.a. USER_ID:GROUP_ID) via setpriv.
     volumes:
       - ${BITCOIN_DATA_PATH}:/home/bitcoin/.bitcoin:ro # Read-only for .cookie
       - ${FULCRUM_DATA_PATH}:/home/fulcrum/db
