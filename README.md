@@ -127,7 +127,7 @@ The tor container creates a Tor hidden service that exposes fulcrum's Electrum p
 ### How it works
 
 1. The tor container builds from `tor/Dockerfile` (Alpine + Tor)
-2. `tor/torrc` configures a hidden service mapping port 50001 to the fulcrum container. Tor only accepts numeric IP targets (it can't resolve hostnames), so `tor/entrypoint.sh` resolves fulcrum's container address from `/etc/hosts` and rewrites the config at startup
+2. `tor/torrc` configures a hidden service mapping port 50001 to `fulcrum:50001` (tor resolves the service name itself via the container network's DNS)
 3. On startup, `tor/entrypoint.sh` waits for Tor to generate the hostname and prints the `.onion` address to the container logs
 4. The onion address and its private key persist in `./tor-data/` (the mounted volume), so the address stays the same across restarts
 
