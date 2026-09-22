@@ -1,9 +1,9 @@
-# Bitcoin Knots Docker Setup (v29.4.1.knots20260508) + Fulcrum (BLAKE2b)
+# Bitcoin Knots Docker Setup (v29.4.2.knots20260508) + Fulcrum (BLAKE2b)
 
 This repository provides a Docker-based setup for running Bitcoin Knots and Fulcrum, with an optional Tor hidden service for remote Electrum access.
 
-**Current Bitcoin Knots Version**: 29.4.1.knots20260508
-**Current Fulcrum Version**: 2.1.2-blake2b (BLAKE2b proof-of-work support)
+**Current Bitcoin Knots Version**: 29.4.2.knots20260508
+**Current Fulcrum Version**: 2.1.2-blake (BLAKE2b proof-of-work support)
 **Source**: URLs pulled from https://bitcoinknots.org/ and https://github.com/privkeyio/Fulcrum/releases
 
 ## How to use
