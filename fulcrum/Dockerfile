@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y \
 
 # Fulcrum release tag (used in the download URL path) and version (used in filenames).
 # NOTE: these differ upstream, e.g. tag "v2.1.2-blake-3" ships files named "Fulcrum-2.1.2-blake-...".
-ENV FULCRUM_RELEASE_TAG=v2.1.2-blake-3
-ENV FULCRUM_VERSION=2.1.2-blake
+ENV FULCRUM_RELEASE_TAG=v2.1.3-blake
+ENV FULCRUM_VERSION=2.1.3-blake
 # wget saves files using the URL basename, which includes the "Fulcrum-" prefix
 ENV FULCRUM_TARBALL=Fulcrum-${FULCRUM_VERSION}-x86_64-linux.tar.gz
 ENV SHA256SUMS_FILE=Fulcrum-${FULCRUM_VERSION}-shasums.txt
