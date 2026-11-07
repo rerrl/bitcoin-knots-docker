@@ -40,6 +40,9 @@ services:
     build:
       context: .
       dockerfile: tor/Dockerfile
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
     container_name: tor
     restart: unless-stopped
     volumes:

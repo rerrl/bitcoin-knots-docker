@@ -8,16 +8,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Fulcrum release tag (used in the download URL path) and version (used in filenames).
-# NOTE: these differ upstream, e.g. tag "v2.1.2-blake-3" ships files named "Fulcrum-2.1.2-blake-...".
-ENV FULCRUM_RELEASE_TAG=v2.1.3-blake
-ENV FULCRUM_VERSION=2.1.3-blake
+ENV FULCRUM_VERSION=2.1.4-blake
 # wget saves files using the URL basename, which includes the "Fulcrum-" prefix
 ENV FULCRUM_TARBALL=Fulcrum-${FULCRUM_VERSION}-x86_64-linux.tar.gz
 ENV SHA256SUMS_FILE=Fulcrum-${FULCRUM_VERSION}-shasums.txt
 ENV SHA256SUMS_ASC_FILE=Fulcrum-${FULCRUM_VERSION}-shasums.txt.asc
-ENV FULCRUM_URL=https://github.com/privkeyio/Fulcrum/releases/download/${FULCRUM_RELEASE_TAG}/${FULCRUM_TARBALL}
-ENV SHA256SUMS_URL=https://github.com/privkeyio/Fulcrum/releases/download/${FULCRUM_RELEASE_TAG}/${SHA256SUMS_FILE}
-ENV SHA256SUMS_ASC_URL=https://github.com/privkeyio/Fulcrum/releases/download/${FULCRUM_RELEASE_TAG}/${SHA256SUMS_ASC_FILE}
+ENV FULCRUM_URL=https://github.com/privkeyio/Fulcrum/releases/download/v${FULCRUM_VERSION}/${FULCRUM_TARBALL}
+ENV SHA256SUMS_URL=https://github.com/privkeyio/Fulcrum/releases/download/v${FULCRUM_VERSION}/${SHA256SUMS_FILE}
+ENV SHA256SUMS_ASC_URL=https://github.com/privkeyio/Fulcrum/releases/download/v${FULCRUM_VERSION}/${SHA256SUMS_ASC_FILE}
 
 # Download Fulcrum and checksums
 WORKDIR /tmp
