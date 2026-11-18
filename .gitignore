@@ -1,5 +1,6 @@
 bitcoin-data
 fulcrum-data
+lnd-data
 tor-data
 bitcoin.conf
 .env
