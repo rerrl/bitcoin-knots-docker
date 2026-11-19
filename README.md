@@ -1,10 +1,11 @@
 # Bitcoin Knots Docker Setup + Fulcrum (BLAKE2b)
 
-This repository provides a Docker-based setup for running Bitcoin Knots and Fulcrum, with an optional Tor hidden service for remote Electrum access.
+This repository provides a Docker-based setup for running Bitcoin Knots and Fulcrum, with optional Tor hidden service for remote Electrum access and an optional LND (Lightning Fork, BLAKE2b) node.
 
 **Current Bitcoin Knots Version**: 29.5.knots20260508
 **Current Fulcrum Version**: 2.1.4-blake 
-**Source**: URLs pulled from https://bitcoinknots.org/ and https://github.com/privkeyio/Fulcrum/releases
+**Current LND Version**: v0.21.8-beta-blake2b.24
+**Source**: URLs pulled from https://bitcoinknots.org/, https://github.com/privkeyio/Fulcrum/releases and https://github.com/paulscode/lightning-fork
 
 ## How to use
 
@@ -26,7 +27,7 @@ Edit `.env` to set your desired paths and configuration. For development, the de
 mkdir bitcoin-data fulcrum-data
 ```
 
-Optionally create a `tor-data` directory if you plan to enable Tor (see Tor section below).
+Optionally create a `tor-data` directory if you plan to enable Tor, and a `lnd-data` directory if you plan to enable LND (see the Tor and LND sections below).
 
 5. Build and start the containers:
 
@@ -76,6 +77,7 @@ Fulcrum is built with the same multi-stage verification approach:
 
 - **bitcoind container**: Runs Bitcoin Knots with user/group ID matching your host system to avoid permission issues
 - **fulcrum container**: Provides an Electrum server interface to the Bitcoin node, running as the same host user ID so it can read bitcoind's `.cookie` file for RPC authentication
+- **lnd container** (optional): Runs the Lightning Fork (BLAKE2b) `lnd` node against bitcoind, running as the same host user ID so it can read bitcoind's `.cookie` file for RPC authentication
 - **tor container** (optional): Exposes fulcrum as a Tor hidden service so you can connect from remote wallets like Sparrow via Tor
 - Containers communicate over a Docker network, with fulcrum connecting to bitcoind's RPC interface, and tor connecting to fulcrum
 
@@ -91,7 +93,7 @@ The default config:
 
 ### Data Storage
 
-**Development/Testing**: By default, data is stored in local directories (`./bitcoin-data`, `./fulcrum-data`, and `./tor-data`)
+**Development/Testing**: By default, data is stored in local directories (`./bitcoin-data`, `./fulcrum-data`, `./tor-data`, and `./lnd-data`)
 
 **Production**: For production deployments, you should use external storage volumes (like dedicated SSDs) mounted to your host system:
 
@@ -192,6 +194,53 @@ cat ./tor-data/hostname
 - **Back up `./tor-data/`** — losing the private key means getting a new `.onion` address and reconfiguring all connected wallets.
 - **Only fulcrum is exposed** via the hidden service. The bitcoind RPC and P2P ports are not routed through Tor — they remain local.
 - **The tor container is disabled by default** via Docker Compose profiles. It only starts if `COMPOSE_PROFILES=tor` is set in your `.env` file. To disable an existing setup, just comment out that line.
+
+## LND (Lightning Fork, BLAKE2b)
+
+The lnd container runs [Lightning Fork](https://github.com/paulscode/lightning-fork), the `lnd` fork for the Bitcoin BLAKE2b chain, against bitcoind. It is **disabled by default** and clearnet only (no Tor).
+
+### Enabling LND
+
+1. **Uncomment the profile line** in `.env`:
+
+   ```
+   COMPOSE_PROFILES=lnd
+   ```
+
+   Combine with Tor if you want both: `COMPOSE_PROFILES=tor,lnd`.
+
+2. **Create the data directory**:
+
+   ```bash
+   mkdir lnd-data
+   ```
+
+3. Start it: `docker compose up --build`. Build the image alone with `docker compose build lnd`.
+
+### First run: create the wallet
+
+Open a shell inside the container:
+
+```bash
+docker exec -it lnd bash
+```
+
+Inside it, run the `lncli` commands as normal: `lncli create` the first time, then `lncli unlock` after every restart (there is no auto-unlock) and `lncli getinfo` to check the node. Run `exit` to leave the shell.
+
+### Configuration
+
+Settings live in `lnd/lnd.conf`, baked into the image at `/home/lnd/lnd.conf` and passed to lnd with `--configfile`. To override, mount a custom file over that path. The default:
+
+- `bitcoin.node=bitcoind`, `bitcoind.rpchost=bitcoind:8332`
+- `bitcoind.rpccookie=/home/bitcoin/.bitcoin/.cookie` (auth via bitcoind's cookie, no secrets in env)
+- ZMQ: `bitcoind.zmqpubrawblock=tcp://bitcoind:28332`, `bitcoind.zmqpubrawtx=tcp://bitcoind:28333`
+- `rpclisten=0.0.0.0:10009`, `restlisten=0.0.0.0:8080`, `listen=0.0.0.0:9735`
+
+Ports: **9735** (P2P), **10009** (gRPC), **8080** (REST). Data is persisted in `${LND_DATA_PATH}` (default `./lnd-data`).
+
+### Bumping the pinned version
+
+Edit `LND_VERSION` at the top of `lnd/Dockerfile` to the newest `-blake2b` tag from https://github.com/paulscode/lightning-fork/tags, then rebuild. The exact fork commit and btcd fork version are recorded in the image at `/etc/lightning-fork-commit` and `/etc/btcd-blake2b-version`.
 
 ## Removing / Tearing down
 
