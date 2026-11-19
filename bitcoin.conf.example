@@ -9,13 +9,7 @@ printtoconsole=1
 maxuploadtarget=5000
 
 # Allow default RPC access from Docker. You may need to update this to match your network.
-# 172.17.0.0/16 is the default bridge; Docker Compose projects use their own
-# user-defined networks, typically starting at 172.18.0.0/16. Both are allowed
-# here so fulcrum and lnd can reach RPC. If your compose network lands on a
-# different subnet (check with `docker network inspect <project>_default`), add
-# it here, or widen this to 172.16.0.0/12 to cover all Docker ranges.
 rpcallowip=172.17.0.0/16
-rpcallowip=172.18.0.0/16
 
 zmqpubrawblock=tcp://0.0.0.0:28332
 zmqpubrawtx=tcp://0.0.0.0:28333
@@ -30,7 +24,6 @@ par=0
 # Whitelist local connections (and docker)
 whitelist=127.0.0.1
 whitelist=172.17.0.0/16
-whitelist=172.18.0.0/16
 whitelist=[::1]
 
 # Dont limit data to electrum server or local network

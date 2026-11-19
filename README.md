@@ -219,16 +219,13 @@ The lnd container runs [Lightning Fork](https://github.com/paulscode/lightning-f
 
 ### First run: create the wallet
 
-```bash
-docker exec -it lnd lncli create
-```
-
-There is no auto-unlock. After every restart (or `docker compose down` / `up`), unlock it:
+Open a shell inside the container:
 
 ```bash
-docker exec -it lnd lncli unlock
-docker exec -it lnd lncli getinfo
+docker exec -it lnd bash
 ```
+
+Inside it, run the `lncli` commands as normal: `lncli create` the first time, then `lncli unlock` after every restart (there is no auto-unlock) and `lncli getinfo` to check the node. Run `exit` to leave the shell.
 
 ### Configuration
 
