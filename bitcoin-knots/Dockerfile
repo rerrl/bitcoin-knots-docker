@@ -10,12 +10,16 @@ RUN apt-get update && apt-get install -y \
 # Bitcoin Knots version
 ENV BITCOIN_VERSION=29.5.knots20260508
 ENV BITCOIN_URL=https://bitcoinknots.org/files/29.x/${BITCOIN_VERSION}/bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz
+# Source tarball: ships the bash completion scripts under contrib/completions/bash/
+# (the binary tarball does not). It is covered by the same signed SHA256SUMS.
+ENV BITCOIN_SOURCE_URL=https://bitcoinknots.org/files/29.x/${BITCOIN_VERSION}/bitcoin-${BITCOIN_VERSION}.tar.gz
 ENV SHA256SUMS_URL=https://bitcoinknots.org/files/29.x/${BITCOIN_VERSION}/SHA256SUMS
 ENV SHA256SUMS_ASC_URL=https://bitcoinknots.org/files/29.x/${BITCOIN_VERSION}/SHA256SUMS.asc
 
 # Download Bitcoin Knots and checksums
 WORKDIR /tmp
 RUN wget ${BITCOIN_URL} && \
+    wget ${BITCOIN_SOURCE_URL} && \
     wget ${SHA256SUMS_URL} && \
     wget ${SHA256SUMS_ASC_URL}
 
@@ -28,6 +32,16 @@ RUN gpg --verify SHA256SUMS.asc SHA256SUMS
 
 # Verify binary checksum
 RUN grep "bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz" SHA256SUMS | sha256sum -c -
+
+# Verify source tarball checksum against the same signed SHA256SUMS, then take the
+# official bash completion scripts from it (staged under fixed names for COPY).
+RUN grep "bitcoin-${BITCOIN_VERSION}.tar.gz" SHA256SUMS | sha256sum -c - && \
+    tar -xzf bitcoin-${BITCOIN_VERSION}.tar.gz \
+        bitcoin-${BITCOIN_VERSION}/contrib/completions/bash && \
+    mkdir -p /completions && \
+    cp bitcoin-${BITCOIN_VERSION}/contrib/completions/bash/bitcoin-cli.bash /completions/bitcoin-cli && \
+    cp bitcoin-${BITCOIN_VERSION}/contrib/completions/bash/bitcoind.bash /completions/bitcoind && \
+    cp bitcoin-${BITCOIN_VERSION}/contrib/completions/bash/bitcoin-tx.bash /completions/bitcoin-tx
 
 # Extract binaries
 RUN tar -xzf bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz
@@ -44,7 +58,20 @@ RUN apt-get update && apt-get install -y \
     libnatpmp1 \
     libzmq5 \
     less \
+    bash-completion \
     && rm -rf /var/lib/apt/lists/*
+
+# Official bash completion scripts from the Knots source tarball. The filename is
+# the command name so bash-completion can lazy-load them.
+COPY --from=builder /completions/bitcoin-cli /usr/share/bash-completion/completions/bitcoin-cli
+COPY --from=builder /completions/bitcoind /usr/share/bash-completion/completions/bitcoind
+COPY --from=builder /completions/bitcoin-tx /usr/share/bash-completion/completions/bitcoin-tx
+
+# Enable completion for interactive non-login shells (`docker exec -it bitcoind bash`),
+# which read /etc/bash.bashrc rather than /etc/profile.d.
+COPY bitcoin-knots/bashrc-completion.sh /tmp/bashrc-completion.sh
+RUN { echo; cat /tmp/bashrc-completion.sh; } >> /etc/bash.bashrc && \
+    rm /tmp/bashrc-completion.sh
 
 # Get host user ID to avoid permission issues
 ARG USER_ID=1000

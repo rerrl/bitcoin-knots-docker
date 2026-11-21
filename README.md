@@ -242,6 +242,20 @@ Ports: **9735** (P2P), **10009** (gRPC), **8080** (REST). Data is persisted in `
 
 Edit `LND_VERSION` at the top of `lnd/Dockerfile` to the newest `-blake2b` tag from https://github.com/paulscode/lightning-fork/tags, then rebuild. The exact fork commit and btcd fork version are recorded in the image at `/etc/lightning-fork-commit` and `/etc/btcd-blake2b-version`.
 
+## Tab completion
+
+Both containers ship the official upstream completion scripts.
+
+- `docker exec -it bitcoind bash` completes `bitcoin-cli`, `bitcoind` and `bitcoin-tx` commands and options. `bitcoin-cli` gets its command list from the node, so completion needs bitcoind running.
+- `docker exec -it lnd bash` completes `lncli` commands and global flags.
+
+For per-command flags plus descriptions, use fish inside the lnd container:
+
+```bash
+docker exec -it lnd fish
+lncli getinfo <TAB>
+```
+
 ## Removing / Tearing down
 
 To stop and remove all containers (data volumes persist):
