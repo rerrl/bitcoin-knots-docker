@@ -49,3 +49,25 @@ services:
       - ${TOR_DATA_PATH}:/var/lib/tor/hidden_service
     depends_on:
       - fulcrum
+
+  lnd:
+    profiles:
+      - lnd
+    build:
+      context: .
+      dockerfile: lnd/Dockerfile
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+    container_name: lnd
+    restart: unless-stopped
+    user: "${USER_ID}:${GROUP_ID}" # Match bitcoin-knots user for .cookie read access
+    volumes:
+      - ${LND_DATA_PATH}:/home/lnd/.lnd
+      - ${BITCOIN_DATA_PATH}:/home/bitcoin/.bitcoin:ro # Read-only for .cookie
+    ports:
+      - "9735:9735" # P2P
+      - "10009:10009" # gRPC
+      - "8080:8080" # REST
+    depends_on:
+      - bitcoind
