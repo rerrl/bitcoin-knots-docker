@@ -274,5 +274,5 @@ To fully reset, also remove the local data directories:
 
 ```bash
 docker compose down -v
-rm -rf bitcoin-data fulcrum-data tor-data
+rm -rf bitcoin-data fulcrum-data tor-data lnd-data
 ```
