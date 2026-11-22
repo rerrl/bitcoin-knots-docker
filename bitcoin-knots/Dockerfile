@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Bitcoin Knots version
-ENV BITCOIN_VERSION=29.5.knots20260508
+ENV BITCOIN_VERSION=29.5.1.knots20260508
 ENV BITCOIN_URL=https://bitcoinknots.org/files/29.x/${BITCOIN_VERSION}/bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz
 # Source tarball: ships the bash completion scripts under contrib/completions/bash/
 # (the binary tarball does not). It is covered by the same signed SHA256SUMS.

@@ -2,7 +2,7 @@
 
 This repository provides a Docker-based setup for running Bitcoin Knots and Fulcrum, with optional Tor hidden service for remote Electrum access and an optional LND (Lightning Fork, BLAKE2b) node.
 
-**Current Bitcoin Knots Version**: 29.5.knots20260508
+**Current Bitcoin Knots Version**: 29.5.1.knots20260508
 **Current Fulcrum Version**: 2.1.4-blake 
 **Current LND Version**: v0.21.8-beta-blake2b.24
 **Source**: URLs pulled from https://bitcoinknots.org/, https://github.com/privkeyio/Fulcrum/releases and https://github.com/paulscode/lightning-fork
